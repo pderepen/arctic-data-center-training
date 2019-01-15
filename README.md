@@ -1,4 +1,4 @@
-# arctic-data-center-training
+# Arctic Data Center Training Sample Code
 Sample code from the Arctic Data Center Training
 
 This repository is used as:
