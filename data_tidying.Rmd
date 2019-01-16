@@ -9,12 +9,41 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
-
+```{r, warning=F, message=F}
+# Load necessary packages
+library(dplyr)
+library(tidyr)
 ```
 
+If a function has the same name in two different packages, the one from the last loaded package will be the one working.
+
+To call a function from a specfic package: `package_name::function_name(...)`
+
+To remove all packages loaded: Session -> Restart R
 
 # Data Cleaning
+
+Read in data file
+
+```{r, echo=F}
+catch <- read.csv(file = "https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1")
+head(catch)
+```
+
+Pipe operator: cmd + shift + M (%>%)
+
+Steps covered here:  
+* Remove marginal sum and notes columns  
+* Move from wide to long format  
+
+```{r, echo=F, warning=F}
+catch_long <- catch %>% 
+  select(Region, Year, Chinook, Sockeye, Coho, Pink, Chum) %>% # or select(-All, -notesRegCode)
+  gather(key = "Species", value = "Catch", -Year, -Region)
+
+head(catch_long)
+```
+
 
 # Split-Apply-Combine
 
