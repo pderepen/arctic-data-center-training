@@ -6,10 +6,10 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 ```
 
-```{r, warning=F, message=F}
+```{r}
 # Load necessary packages
 library(dplyr)
 library(tidyr)
@@ -36,7 +36,7 @@ Steps covered here:
 * Remove marginal sum and notes columns  
 * Move from wide to long format  
 
-```{r, echo=F, warning=F}
+```{r, echo=F}
 catch_long <- catch %>% 
   select(Region, Year, Chinook, Sockeye, Coho, Pink, Chum) %>% # or select(-All, -notesRegCode)
   gather(key = "Species", value = "Catch", -Year, -Region)
@@ -44,6 +44,23 @@ catch_long <- catch %>%
 head(catch_long)
 ```
 
+Changed the name of the Catch column to Catch_thousands to better represents that catch numbers are in thousands of fish.
+
+```{r, echo=F}
+catch_cleaned <- catch_long %>% 
+  rename(Catch_thousands = Catch) #%>% 
+  #mutate(Catch = Catch_thousands * 1000)
+
+head(catch_cleaned)
+```
+
+```{r}
+test_catch <- as.integer(catch_cleaned$Catch_thousands)
+
+i <- which(is.na(test_catch) == TRUE)
+
+catch_cleaned[i, ]
+```
 
 # Split-Apply-Combine
 
