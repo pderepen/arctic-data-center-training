@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
 ```{r}
@@ -44,17 +44,24 @@ catch_long <- catch %>%
 head(catch_long)
 ```
 
-Changed the name of the Catch column to Catch_thousands to better represents that catch numbers are in thousands of fish.
+Steps covered next:  
+* Changed the name of the Catch column to Catch_thousands to better represents that catch numbers are in thousands of fish  
+* Erroneous value due to OCR issue - change I to 1  
+* Create a new column for Catch in exact numbers  
 
 ```{r, echo=F}
 catch_cleaned <- catch_long %>% 
-  rename(Catch_thousands = Catch) #%>% 
-  #mutate(Catch = Catch_thousands * 1000)
+  rename(Catch_thousands = Catch) %>%
+  mutate(Catch_thousands = ifelse(Catch_thousands == "I", 1, Catch_thousands)) %>% # or 1, as.integer(Catch_thousands)
+  mutate(Catch_thousands = as.integer(Catch_thousands)) %>% 
+  mutate(Catch = Catch_thousands * 1000)
 
-head(catch_cleaned)
+tail(catch_cleaned)
 ```
 
-```{r}
+```{r, eval=F, echo=F}
+
+# I used this code to find the bad value
 test_catch <- as.integer(catch_cleaned$Catch_thousands)
 
 i <- which(is.na(test_catch) == TRUE)
@@ -64,4 +71,100 @@ catch_cleaned[i, ]
 
 # Split-Apply-Combine
 
+Calculate the total catch by region
+
+```{r, echo=F}
+catch_total <- catch_cleaned %>% 
+  group_by(Region, Year) %>% 
+  summarise(Catch_Region_Year = sum(Catch), n_obs = n())
+
+head(catch_total)
+```
+
+Matt's challenge
+
+```{r, echo=F}
+catch_matt <- catch_cleaned %>% 
+  group_by(Year, Species) %>% 
+  summarise(Catch_Mean = mean(Catch), Catch_sd = sd(Catch), n_obs = n())
+
+head(catch_matt)
+```
+
+Filter for chinook salmon
+
+```{r, echo=F}
+catch_chinook <- catch_cleaned %>% 
+  filter(Species == "Chinook" & Region == "SSE" & Year >= 1990) %>% 
+  arrange(-Year)
+
+head(catch_chinook)
+```
+
 # Joins
+
+Read in region definitions files
+
+```{r, echo=F}
+region_defs <- read.csv(url("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.303.1", method = "libcurl"),
+                        stringsAsFactors = FALSE)
+
+head(region_defs)
+```
+
+Clean up region definitions data
+
+```{r, echo=F}
+region_cleaned <- region_defs %>% 
+  select(code, mgmtArea)
+
+head(region_cleaned)
+```
+
+```{r, echo=F}
+catch_joined <- left_join(catch_cleaned, region_cleaned,
+                          by = c("Region" = "code"))
+
+head(catch_joined)
+```
+
+## Spread
+
+Make a wide dataframe using spread
+
+```{r}
+catch_wide <- catch_cleaned %>% 
+  filter(Year > 1990) %>%
+  select(-Catch_thousands) %>% 
+  spread(key = Year, value = Catch)
+
+head(catch_wide)
+```
+
+## Separate and Unite
+
+```{r}
+dates_df <- data.frame(date = c("5/24/1930",
+                                "5/25/1930",
+                                "5/26/1930",
+                                "5/27/1930",
+                                "5/28/1930"),
+                       stringsAsFactors = FALSE)
+
+dates_df
+```
+
+```{r}
+dates_sep <- dates_df %>% 
+  separate(col = date, into = c("month", "day", "year"), sep = "/", remove = FALSE)
+
+dates_sep
+```
+
+```{r}
+dates_unite <- dates_sep %>% 
+  unite(date_iso, year, month, day, sep = "-")
+
+dates_unite
+```
+
