@@ -6,7 +6,7 @@ This repository is used as:
 * Pat changed this line
 * An introduction to git
 * Using git with RStudio
-* Pat changed Mike's line
+* Mike and Pat changed this line again. 
 
 ## Credits
 
