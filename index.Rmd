@@ -1,30 +1,85 @@
 ---
-title: "Untitled"
+title: "Index"
 author: "Patricia DeRepentigny"
 date: "1/17/2019"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r, echo=F}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(DT)
 ```
 
-## Including Plots
+# Data Tidying
 
-You can also embed plots, for example:
+Read in escapement data sourced from: Alaska Department of Fish and Game, Division of Commercial Fisheries. 2017. Daily salmon escapement counts from the OceanAK database, Alaska, 1921-2017. Knowledge Network for Biocomplexity. doi:10.5063/F1S46Q6M.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r, echo=F, results=F}
+esc <- read.csv("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Af119a05b-bbe7-4aea-93c6-85434dcb1c5e",
+                stringsAsFactors = FALSE)
+
+head(esc)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Calculate annual, regional total escapement by species:  
+* `separate` the date into year - month - day  
+* `group_by` and `summarize` to calculate the sum over unique region-year-species combinations  
+* `filter` for salmon species
+
+```{r, echo=F}
+annual_esc <- esc %>% 
+  separate(sampleDate, into = c("year", "month", "day"), sep = "-") %>% 
+  mutate(year = as.numeric(year)) %>% 
+  group_by(SASAP.Region, Species, year) %>% 
+  summarise(escapement = sum(DailyCount)) %>% 
+  filter(Species %in% c("Chinook", "Sockeye", "Pink", "Chum", "Coho"))
+```
+
+```{r, echo=F}
+datatable(annual_esc)
+```
+# Static Plots
+
+```{r, echo=F}
+ggplot(data = annual_esc, mapping = aes(x = Species, y = escapement, fill = SASAP.Region)) +
+  geom_col()
+```
+
+Timeseries of Kodiak escapement by species.
+
+```{r, echo=F}
+my_theme <- theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(data = filter(annual_esc, SASAP.Region == "Kodiak"), 
+       aes(x = year, y = escapement, color = Species)) + 
+  geom_line() + 
+  geom_point() +
+  ylab("Escapement (number of fish)") +
+  ggtitle("Kodiak Salmon Escapement") +
+  my_theme
+  
+```
+
+Plot timeseries of escapement by species for all regions
+
+```{r, echo=F, fig.height = 10, fig.width = 8}
+p <- ggplot(annual_esc, aes(x = year, y = escapement, color = Species)) +
+  geom_line() +
+  geom_point() + 
+  facet_wrap(~SASAP.Region, scales = "free", ncol = 2) +
+  my_theme
+
+p
+
+ggsave("region_escapement.eps", plot = p, height = 10, width = 8, units = "in")
+```
+
+
+# Interactive Map
