@@ -78,8 +78,15 @@ p <- ggplot(annual_esc, aes(x = year, y = escapement, color = Species)) +
 
 p
 
-ggsave("region_escapement.eps", plot = p, height = 10, width = 8, units = "in")
+ggsave("Figures/region_escapement.eps", plot = p, height = 10, width = 8, units = "in")
 ```
+
+Write derived data to a csv file
+
+```{r, echo=F}
+write.csv(annual_esc, "Derived_data/annual_escapement.csv", row.names = F)
+```
+
 
 
 # Interactive Map
