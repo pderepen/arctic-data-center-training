@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 ```
 
 ```{r, echo=F}
@@ -14,13 +14,14 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(DT)
+library(leaflet)
 ```
 
 # Data Tidying
 
 Read in escapement data sourced from: Alaska Department of Fish and Game, Division of Commercial Fisheries. 2017. Daily salmon escapement counts from the OceanAK database, Alaska, 1921-2017. Knowledge Network for Biocomplexity. doi:10.5063/F1S46Q6M.
 
-```{r, echo=F, results=F}
+```{r, results=F}
 esc <- read.csv("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Af119a05b-bbe7-4aea-93c6-85434dcb1c5e",
                 stringsAsFactors = FALSE)
 
@@ -32,7 +33,7 @@ Calculate annual, regional total escapement by species:
 * `group_by` and `summarize` to calculate the sum over unique region-year-species combinations  
 * `filter` for salmon species
 
-```{r, echo=F}
+```{r}
 annual_esc <- esc %>% 
   separate(sampleDate, into = c("year", "month", "day"), sep = "-") %>% 
   mutate(year = as.numeric(year)) %>% 
@@ -41,19 +42,19 @@ annual_esc <- esc %>%
   filter(Species %in% c("Chinook", "Sockeye", "Pink", "Chum", "Coho"))
 ```
 
-```{r, echo=F}
+```{r}
 datatable(annual_esc)
 ```
 # Static Plots
 
-```{r, echo=F}
+```{r}
 ggplot(data = annual_esc, mapping = aes(x = Species, y = escapement, fill = SASAP.Region)) +
   geom_col()
 ```
 
 Timeseries of Kodiak escapement by species.
 
-```{r, echo=F}
+```{r}
 my_theme <- theme_bw() + 
   theme(plot.title = element_text(hjust = 0.5))
 
@@ -69,7 +70,7 @@ ggplot(data = filter(annual_esc, SASAP.Region == "Kodiak"),
 
 Plot timeseries of escapement by species for all regions
 
-```{r, echo=F, fig.height = 10, fig.width = 8}
+```{r, fig.height = 10, fig.width = 8}
 p <- ggplot(annual_esc, aes(x = year, y = escapement, color = Species)) +
   geom_line() +
   geom_point() + 
@@ -83,10 +84,27 @@ ggsave("Figures/region_escapement.eps", plot = p, height = 10, width = 8, units 
 
 Write derived data to a csv file
 
-```{r, echo=F}
+```{r}
 write.csv(annual_esc, "Derived_data/annual_escapement.csv", row.names = F)
 ```
 
-
-
 # Interactive Map
+
+Make a map using leaflet:  
+* Find unique location with lat/lon values
+
+```{r}
+locations <- esc %>% 
+  distinct(Location, Latitude, Longitude) %>% 
+  drop_na()
+
+datatable(locations)
+```
+Create our interactive map
+
+```{r}
+leaflet(locations) %>% 
+  addTiles() %>% 
+  addMarkers(~Longitude, ~Latitude, popup = ~Location)
+```
+
