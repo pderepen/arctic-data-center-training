@@ -1,0 +1,82 @@
+---
+title: "NetCDF_files"
+author: "Patricia DeRepentigny"
+date: "1/18/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(ncdf4)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+# Read in data from a file
+
+```{r}
+nc <- nc_open("data/WG2013CTD.nc")
+```
+
+```{r}
+print(nc)
+```
+
+```{r}
+vars <- attributes(nc$var)$names
+dims <- attributes(nc$dim)$names
+```
+
+```{r}
+salinity <- ncvar_get(nc, "sal")
+time <- ncvar_get(nc, "time")
+depth <- ncvar_get(nc, "z")
+```
+
+# Reformat the output
+
+```{r}
+time <- as.POSIXct((time + 719529)*86400, origin = "1970-01-01", tz = "UTC")
+```
+
+Coerce into a data frame
+
+```{r}
+salinity_data <- as.data.frame(salinity)
+```
+
+Assign colum names to depth values
+
+```{r}
+names(salinity_data) <- as.character(depth)
+```
+
+Reshape the data and add time
+
+```{r}
+salinity_data_long <- salinity_data %>% 
+  mutate(time = time) %>% 
+  gather(key = "depth", value = "salinity", -time) %>% 
+  mutate(depth = as.numeric(depth)) %>% 
+  arrange(time)
+
+head(salinity_data_long)
+```
+
+# Plots
+
+```{r}
+ggplot(salinity_data_long, mapping = aes(x = time, y = depth, fill = salinity)) +
+  geom_raster()
+```
+
+```{r}
+ggplot(salinity_data_long, mapping = aes(x = salinity, y = depth, color = time, group = time)) +
+  geom_line(size = 0.1) +
+  scale_y_reverse()
+```
+
