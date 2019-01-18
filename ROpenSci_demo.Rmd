@@ -1,0 +1,70 @@
+---
+title: "ROpenSci_demo"
+author: "Patricia DeRepentigny"
+date: "1/18/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# `rnoaa` package
+
+```{r, eval=F}
+install.packages("rnoaa")
+install.packages("ncdf4")
+```
+
+```{r}
+library(rnoaa)
+library(ncdf4)
+library(ggplot2)
+```
+
+Read in buoy data.
+
+```{r}
+bd <- buoy(dataset = "cwind", buoyid = 46080, year = 2018, datatype = "c")
+```
+
+```{r}
+wind_speed <- data.frame(time = strptime(bd$data$time, format = "%Y-%m-%dT%TZ"),
+                         speed = bd$data$wind_spd)
+
+head(wind_speed)
+```
+
+```{r}
+ggplot(wind_speed, aes(x = time, y = speed)) +
+  geom_point()
+```
+
+# `mapr` package
+
+```{r, eval=F}
+install.packages("mapr", dependencies = TRUE)
+```
+
+```{r}
+library(mapr)
+library(spocc)
+```
+
+Plot locations of GBIF species occurrence data for grizzly, polar and spirit bears.
+
+```{r}
+spp <- c("Ursus arctos", "Ursus maritimus", "Ursus americanus kermodei")
+
+bears <- occ(query = spp,
+             from = "gbif",
+             has_coords = T,
+             limit = 500)
+
+class(bears)
+```
+
+```{r}
+map_leaflet(bears, color = c("black", "gray", "pink"), size = 1)
+```
+
