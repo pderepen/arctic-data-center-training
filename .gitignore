@@ -38,3 +38,6 @@ rsconnect/
 
 # csv files
 Derived_data/*.csv
+
+# nc files
+data/*.nc
